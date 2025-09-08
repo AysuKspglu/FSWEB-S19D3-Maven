@@ -1,69 +1,67 @@
 package com.workintech.s19d2.entity;
 
-import ch.qos.logback.core.util.COWArrayList;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-@Data
-@NoArgsConstructor
-@Entity
-@Table(name= "member", schema="fsweb")
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
-public class Member implements UserDetails{
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "members")
+public class Member implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
-    @Column(name = "email")
+    @Column(nullable = false, unique = true, length = 150)
     private String email;
 
-    @Column(name="password")
+    @Column(nullable = false)
     private String password;
 
-    @ManyToMany(fetch=FetchType.EAGER)
-    @JoinTable(name="member_role",schema="fsweb")
-    joinColumns = {@JoinColumn(name="member_id")},
-inverseJoinColumns = {@JoinColumn(name="role_id")})
-private List<Role> = new ArrayList<>();
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "member_roles",
+            joinColumns = @JoinColumn(name = "member_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private List<Role> roles;
 
+    /* -------- UserDetails implementasyonu -------- */
 
-    @java.lang.Override
-    public java.util.Collection<? extends GrantedAuthority> getAuthorities() {
-        return null;
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return roles == null
+                ? List.of()
+                : roles.stream()
+                .map(r -> new SimpleGrantedAuthority(r.getAuthority()))
+                .collect(Collectors.toList());
     }
 
-    @java.lang.Override
-    public java.lang.String getPassword() {
-        return null;
-    }
-
-    @java.lang.Override
+    @Override
     public String getUsername() {
-        return email;
+        return email; // Spring Security 'username' olarak email'i kullanacak
     }
 
-    @java.lang.Override
-    public boolean isAccountNonExpired() {
-        return true;
+    @Override
+    public String getPassword() {
+        return password;
     }
 
-    @java.lang.Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @java.lang.Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @java.lang.Override
-    public boolean isEnabled() {
-        return true;
-    }
+    @Override public boolean isAccountNonExpired()  { return true; }
+    @Override public boolean isAccountNonLocked()   { return true; }
+    @Override public boolean isCredentialsNonExpired(){ return true; }
+    @Override public boolean isEnabled()            { return true; }
 }
